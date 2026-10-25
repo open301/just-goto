@@ -1,0 +1,2 @@
+# Enforce error, panic, and safety sections for internal helpers and route handlers too.
+check-private-items = true

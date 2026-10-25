@@ -1,0 +1,5 @@
+/target
+*.sqlite3*
+.env
+/node_modules
+/web/dist
