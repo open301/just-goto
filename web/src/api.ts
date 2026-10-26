@@ -1,0 +1,178 @@
+import createClient from 'openapi-fetch';
+import type { components, operations, paths } from './generated/api';
+
+type Schemas = components['schemas'];
+export type Redirect = Schemas['RedirectResponse'];
+export type User = Schemas['UserResponse'];
+export type SessionUser = Schemas['LoginUserResponse'];
+export type RedirectDraft = Pick<
+	Redirect,
+	'slug' | 'destination' | 'redirect_code' | 'is_enabled'
+> & { id?: number };
+export type UserDraft = Pick<User, 'username'> &
+	Partial<Pick<User, 'id' | 'roles'>> &
+	Partial<Pick<Schemas['CreateUserRequest'], 'role'>>;
+export type ImportOutcome = Schemas['ImportLinksResponse'];
+
+/** Extract a displayable message from API errors or thrown values. */
+export function errorMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	if (typeof error === 'string') return error;
+	if (
+		typeof error === 'object' &&
+		error !== null &&
+		'message' in error &&
+		typeof error.message === 'string'
+	) {
+		return error.message;
+	}
+	return 'An unexpected error occurred.';
+}
+
+/** Keep the HTTP status available for session and permission handling. */
+export class ApiError extends Error {
+	constructor(
+		public readonly status: number,
+		body: unknown,
+	) {
+		super(body ? errorMessage(body) : `Request failed (${status})`);
+		this.name = 'ApiError';
+	}
+}
+
+/** Return a successful response body or throw a consistent error. */
+function unwrap<T>({
+	data,
+	error,
+	response,
+}: {
+	data?: T;
+	error?: unknown;
+	response: Response;
+}): T {
+	if (!response.ok) throw new ApiError(response.status, error);
+	if (data === undefined) throw new Error('The API returned an empty response.');
+	return data;
+}
+
+/** Bind API requests to a session and notify the app when it expires. */
+export function createApi(token = '', onUnauthorized?: () => void) {
+	const client = createClient<paths>({
+		headers: token ? { Authorization: `Bearer ${token}` } : {},
+		// Some Axum validation failures are plain text rather than JSON.
+		// Normalize only those failures so openapi-fetch can preserve their messages.
+		fetch: async (input) => {
+			const response = await fetch(input);
+			if (
+				!response.ok &&
+				!response.headers.get('content-type')?.includes('application/json')
+			) {
+				const headers = new Headers(response.headers);
+				headers.set('content-type', 'application/json');
+				return new Response(JSON.stringify({ message: await response.text() }), {
+					status: response.status,
+					headers,
+				});
+			}
+			return response;
+		},
+	});
+	client.use({
+		onResponse({ response }) {
+			if (response.status === 401) onUnauthorized?.();
+		},
+	});
+	return {
+		/** Sign in and require both the token and account in the response. */
+		async login(body: Schemas['LoginRequest']) {
+			const data = unwrap(await client.POST('/api/v1/auth/login', { body }));
+			if (!data.token || !data.user) {
+				throw new Error('The API did not return a login session.');
+			}
+			return { token: data.token, user: data.user };
+		},
+		/** Load the current account, including its latest roles. */
+		async me(signal?: AbortSignal) {
+			const data = unwrap(await client.GET('/api/v1/auth/me', { signal }));
+			if (!data.user) throw new Error('The API did not return your account.');
+			return data.user;
+		},
+		/** Revoke the current session on the server. */
+		async logout() {
+			return unwrap(await client.POST('/api/v1/auth/logout'));
+		},
+		/** Fetch a filtered page; callers can cancel stale requests. */
+		async listRedirects(
+			query: operations['list_redirects']['parameters']['query'],
+			signal: AbortSignal,
+		) {
+			return unwrap(await client.GET('/api/v1/redirects', { params: { query }, signal }))
+				.redirects;
+		},
+		/** Create a short link with its destination and redirect settings. */
+		async createRedirect(body: Schemas['CreateRedirectRequest']) {
+			return unwrap(await client.POST('/api/v1/redirects', { body }));
+		},
+		/** Patch only the supplied redirect fields. */
+		async updateRedirect(id: number, body: Schemas['UpdateRedirectRequest']) {
+			return unwrap(
+				await client.PATCH('/api/v1/redirects/{id}', { params: { path: { id } }, body }),
+			);
+		},
+		/** Remove a redirect by ID. */
+		async deleteRedirect(id: number) {
+			return unwrap(
+				await client.DELETE('/api/v1/redirects/{id}', { params: { path: { id } } }),
+			);
+		},
+		/** Upload CSV data and return import counts and row errors. */
+		async importRedirects(file: File): Promise<ImportOutcome> {
+			const result = await client.POST('/api/v1/redirects/import', {
+				body: { file },
+				bodySerializer(body) {
+					const form = new FormData();
+					form.append('file', body.file);
+					return form;
+				},
+			});
+			// A 422 import is a structured outcome with row errors, not a generic failure.
+			if (
+				result.response.status === 422 &&
+				typeof result.error === 'object' &&
+				'errors' in result.error
+			) {
+				return result.error;
+			}
+			return unwrap(result);
+		},
+		/** Fetch a page of accounts; callers can cancel stale requests. */
+		async listUsers(
+			query: operations['list_users']['parameters']['query'],
+			signal: AbortSignal,
+		) {
+			return unwrap(await client.GET('/api/v1/users', { params: { query }, signal })).users;
+		},
+		/** Create an account with an initial password and role. */
+		async createUser(body: Schemas['CreateUserRequest']) {
+			return unwrap(await client.POST('/api/v1/users', { body }));
+		},
+		/** Update an account's username or role. */
+		async updateUser(id: number, body: Schemas['UpdateUserRequest']) {
+			return unwrap(
+				await client.PATCH('/api/v1/users/{id}', { params: { path: { id } }, body }),
+			);
+		},
+		/** Delete an account and revoke its sessions. */
+		async deleteUser(id: number) {
+			return unwrap(await client.DELETE('/api/v1/users/{id}', { params: { path: { id } } }));
+		},
+		/** Change or reset a password, revoking the account's existing sessions. */
+		async updatePassword(id: number, body: Schemas['UpdatePasswordRequest']) {
+			return unwrap(
+				await client.PUT('/api/v1/users/{id}/password', { params: { path: { id } }, body }),
+			);
+		},
+	};
+}
+
+export type Api = ReturnType<typeof createApi>;
