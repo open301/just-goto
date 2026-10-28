@@ -1,0 +1,70 @@
+name: Build binaries
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend
+          path: web/dist
+          if-no-files-found: error
+
+  build:
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-26.04, target: x86_64-unknown-linux-gnu, name: linux-amd64, extension: '' }
+          - { runner: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, name: linux-arm64, extension: '' }
+          - { runner: windows-2025, target: x86_64-pc-windows-msvc, name: windows-amd64, extension: .exe }
+          - { runner: windows-11-vs2026-arm, target: aarch64-pc-windows-msvc, name: windows-arm64, extension: .exe }
+          - { runner: macos-26-intel, target: x86_64-apple-darwin, name: macos-amd64, extension: '' }
+          - { runner: macos-26, target: aarch64-apple-darwin, name: macos-arm64, extension: '' }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: frontend
+          path: web/dist
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Prepare binary
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "target/${{ matrix.target }}/release/justgoto${{ matrix.extension }}" "release/justgoto-${{ matrix.name }}${{ matrix.extension }}"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: justgoto-${{ matrix.name }}
+          path: release/*
+          if-no-files-found: error
