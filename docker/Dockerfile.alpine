@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+
+##################
+# Frontend build #
+##################
+
+# Build the frontend.
+FROM node:26-alpine AS frontend
+WORKDIR /app
+
+# Install dependencies and build the frontend.
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+###################################
+# Alpine image: build and runtime #
+###################################
+
+# Install the Rust and SQLite build tools.
+FROM rust:1.99.1-alpine AS builder-alpine
+RUN apk add --no-cache build-base
+WORKDIR /app
+
+# Build the Rust application.
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY src ./src
+COPY sql ./sql
+COPY --from=frontend /app/web/dist ./web/dist
+RUN cargo build --locked --release
+
+# Prepare the Alpine runtime and data directory.
+FROM alpine AS alpine
+RUN mkdir /data && chown 10001:10001 /data
+
+# Copy the application binary.
+COPY --from=builder-alpine /app/target/release/justgoto /usr/local/bin/justgoto
+
+# Configure and start the application as a non-root user.
+ENV HOST=0.0.0.0 \
+    PORT=3000 \
+    DB_PATH=/data/db.sqlite3
+WORKDIR /data
+USER 10001:10001
+EXPOSE 3000
+ENTRYPOINT ["/usr/local/bin/justgoto"]
