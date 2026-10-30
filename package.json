@@ -54,7 +54,7 @@
 		"eslint-plugin-react-hooks": "7.1.1",
 		"openapi-typescript": "7.13.0",
 		"prettier": "3.9.10",
-		"prettier-plugin-brace-style": "0.10.3",
+		"prettier-plugin-brace-style": "0.10.4",
 		"tailwindcss": "4.3.3",
 		"tsx": "4.23.15",
 		"typescript": "5.9.3",
