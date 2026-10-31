@@ -68,3 +68,51 @@ jobs:
           name: justgoto-${{ matrix.name }}
           path: release/*
           if-no-files-found: error
+
+      - name: Package release binary
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ matrix.name }}
+          EXTENSION: ${{ matrix.extension }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          binary = Path('target') / os.environ['TARGET'] / 'release' / ('justgoto' + os.environ['EXTENSION'])
+          platform, arch = os.environ['PLATFORM'].split('-', 1)
+          archive = f"just-goto_{platform}_{arch}_{os.environ['VERSION']}.zip"
+          with ZipFile(archive, 'w', ZIP_DEFLATED) as package:
+              package.write(binary, binary.name)
+          PYTHON
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: release-${{ matrix.name }}
+          path: just-goto_*.zip
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" release/*.zip --verify-tag --generate-notes
