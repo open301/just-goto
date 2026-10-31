@@ -117,6 +117,14 @@ docs,https://example.com/docs,,
 
 `slug` and `destination` are required. Blank `redirect_code` and `is_enabled` values default to `307` and `true`. Limit: 10 MiB and 10,000 rows.
 
+## Changelog
+
+### v0.1.0
+
+- Initial release of the self-hosted link redirection service and web UI.
+- Supports configurable HTTP redirects, CSV imports, and an OpenAPI schema with Swagger UI.
+- Includes Docker images and release builds for Linux, Windows, and macOS.
+
 ## Contributing
 
 - **Workflows**: Simple workflows should use `ubuntu-slim`. Actions must pin commit hashes.
