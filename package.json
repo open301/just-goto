@@ -6,7 +6,6 @@
 	"scripts": {
 		"dev": "vite --host 127.0.0.1",
 		"generate:api": "tsx scripts/generate-api.ts",
-		"generate:api:check": "tsx scripts/generate-api.ts --check",
 		"typecheck": "tsc --noEmit",
 		"lint": "eslint . --max-warnings 0",
 		"lint:fix": "eslint . --fix --max-warnings 0",
@@ -20,7 +19,9 @@
 		"check:rust": "npm run format:rust:check && npm run lint:rust && cargo test --locked",
 		"check:all": "npm run build && npm run check:rust",
 		"build": "npm run check && vite build",
-		"build:all": "npm run build && cargo build --locked --release"
+		"build:all": "npm run build && cargo build --locked --release",
+		"predev": "npm run generate:api",
+		"pretypecheck": "npm run generate:api"
 	},
 	"prettier": {
 		"useTabs": true,

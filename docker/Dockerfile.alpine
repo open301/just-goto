@@ -4,6 +4,16 @@
 # Frontend build #
 ##################
 
+# Generate the schema before building the frontend.
+FROM rust:1.99.1-alpine AS schema
+RUN apk add --no-cache build-base
+WORKDIR /app
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY src ./src
+COPY sql ./sql
+RUN mkdir -p web/dist/assets && touch web/dist/index.html web/dist/assets/app.js web/dist/assets/app.css \
+    && cargo run --quiet --locked -- --openapi > /openapi.json
+
 # Build the frontend.
 FROM node:26-alpine AS frontend
 WORKDIR /app
@@ -12,7 +22,8 @@ WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 COPY . .
-RUN npm run build
+COPY --from=schema /openapi.json /openapi.json
+RUN JUSTGOTO_OPENAPI_FILE=/openapi.json npm run build
 
 ###################################
 # Alpine image: build and runtime #

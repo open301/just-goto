@@ -88,17 +88,17 @@ To stop automatic updates, run `docker compose --profile watchtower stop watchto
 
 ## Development
 
-Run `npm run build` once, then `cargo run --locked` for the backend and `npm run dev` for the frontend. Set `JUSTGOTO_API_URL` if the backend uses a different address.
+Run `npm run build` once, then `cargo run --locked` for the backend and `npm run dev` for the frontend. Rust is required to generate frontend API types automatically from the local backend schema. Set `JUSTGOTO_API_URL` if the backend uses a different address.
 
-| Command                | Description                               |
-| ---------------------- | ----------------------------------------- |
-| `npm run build`        | Check and build the frontend              |
-| `npm run build:all`    | Build the release binary with UI          |
-| `npm run check`        | Check frontend types, lint, and format    |
-| `npm run check:rust`   | Check Rust lint, format, and tests        |
-| `npm run check:all`    | Run all checks and build the frontend     |
-| `npm run format:all`   | Format code and Markdown                  |
-| `npm run generate:api` | Update API types from the running backend |
+| Command                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `npm run build`        | Check and build the frontend                     |
+| `npm run build:all`    | Build the release binary with UI                 |
+| `npm run check`        | Check frontend types, lint, and format           |
+| `npm run check:rust`   | Check Rust lint, format, and tests               |
+| `npm run check:all`    | Run all checks and build the frontend            |
+| `npm run format:all`   | Format code and Markdown                         |
+| `npm run generate:api` | Generate API types from the local backend schema |
 
 ## API
 
