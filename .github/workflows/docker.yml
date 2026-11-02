@@ -12,7 +12,11 @@ env:
   IMAGE: zephnx/just-goto
 
 jobs:
+  check-tag-versions:
+    uses: ./.github/workflows/check-tag-versions.yml
+
   build:
+    needs: check-tag-versions
     strategy:
       fail-fast: false
       matrix:
