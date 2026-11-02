@@ -5,7 +5,10 @@ export const PAGE_SIZE = 20;
 /** Render errors as an accessible alert, leaving no markup when empty. */
 export function ErrorMessage({ error }: { error: unknown }) {
 	return error ? (
-		<p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-red-800">
+		<p
+			role="alert"
+			className="rounded-md border border-red-200 bg-red-50 p-3 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+		>
 			{errorMessage(error)}
 		</p>
 	) : null;

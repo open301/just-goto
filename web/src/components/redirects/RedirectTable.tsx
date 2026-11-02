@@ -42,7 +42,11 @@ function RedirectRow({
 			</td>
 			<td>{redirect.redirect_code}</td>
 			<td>
-				<span className={redirect.is_enabled ? 'text-emerald-700' : 'muted'}>
+				<span
+					className={
+						redirect.is_enabled ? 'text-emerald-700 dark:text-emerald-400' : 'muted'
+					}
+				>
 					{redirect.is_enabled ? 'Enabled' : 'Disabled'}
 				</span>
 			</td>
@@ -70,7 +74,7 @@ function RedirectRow({
 							</button>
 							<button
 								type="button"
-								className="text-red-700 underline"
+								className="text-red-700 underline dark:text-red-400"
 								disabled={busy}
 								onClick={() => onDelete(redirect)}
 							>
@@ -96,9 +100,9 @@ export function RedirectTable({
 	error: unknown;
 } & RedirectActions) {
 	return (
-		<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+		<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
 			<table className="w-full">
-				<thead className="border-b border-slate-200">
+				<thead className="border-b border-slate-200 dark:border-slate-700">
 					<tr>
 						<th>Short link / Destination</th>
 						<th>Code</th>
@@ -108,7 +112,7 @@ export function RedirectTable({
 						</th>
 					</tr>
 				</thead>
-				<tbody className="divide-y divide-slate-100">
+				<tbody className="divide-y divide-slate-100 dark:divide-slate-700">
 					{redirects.map((redirect) => (
 						<RedirectRow key={redirect.id} redirect={redirect} {...actions} />
 					))}
