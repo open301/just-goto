@@ -9,10 +9,11 @@ FROM node:26-alpine AS frontend
 WORKDIR /app
 
 # Install dependencies and build the frontend.
+# Type-checking runs in CI, and generated API types are type-only imports, so Vite does not need them.
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 ########################################
 # Debian slim image: build and runtime #
@@ -25,12 +26,20 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-# Build the Rust application.
+# Compile the dependencies with a placeholder app, so they stay cached until Cargo.toml or Cargo.lock changes.
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+RUN mkdir src \
+    && printf '//! Placeholder for compiling dependencies.\nfn main() {}\n' > src/main.rs \
+    && cargo build --locked --release \
+    && rm -rf src
+
+# Build the Rust application with the frontend embedded.
+# Touching main.rs makes Cargo rebuild the app instead of reusing the placeholder.
+COPY build.rs ./
 COPY src ./src
 COPY sql ./sql
 COPY --from=frontend /app/web/dist ./web/dist
-RUN cargo build --locked --release
+RUN touch src/main.rs && cargo build --locked --release
 
 # Prepare the Debian runtime and data directory.
 FROM debian:trixie-slim AS debian-slim

@@ -10,12 +10,30 @@ use axum::{
 
 use super::request::ApiState;
 
-/// Production HTML embedded when the Rust binary is built.
-const INDEX: &[u8] = include_bytes!("../../web/dist/index.html");
-/// Production JavaScript bundle embedded when the Rust binary is built.
-const JAVASCRIPT: &[u8] = include_bytes!("../../web/dist/assets/app.js");
-/// Production CSS bundle embedded when the Rust binary is built.
-const STYLESHEET: &[u8] = include_bytes!("../../web/dist/assets/app.css");
+use assets::{INDEX, JAVASCRIPT, STYLESHEET};
+
+/// Production frontend files embedded when the Rust binary is built.
+#[cfg(not(missing_frontend))]
+mod assets {
+    /// Production HTML.
+    pub const INDEX: &[u8] = include_bytes!("../../web/dist/index.html");
+    /// Production JavaScript bundle.
+    pub const JAVASCRIPT: &[u8] = include_bytes!("../../web/dist/assets/app.js");
+    /// Production CSS bundle.
+    pub const STYLESHEET: &[u8] = include_bytes!("../../web/dist/assets/app.css");
+}
+
+/// Placeholders used when the binary is built before the frontend, such as for API type generation.
+#[cfg(missing_frontend)]
+mod assets {
+    /// Explains how to build the missing web interface.
+    pub const INDEX: &[u8] =
+        b"The web interface was not built. Run `npm run build`, then rebuild JustGoto.";
+    /// Empty JavaScript bundle.
+    pub const JAVASCRIPT: &[u8] = b"";
+    /// Empty CSS bundle.
+    pub const STYLESHEET: &[u8] = b"";
+}
 
 /// Registers the public application entry point and embedded asset routes.
 pub fn routes() -> Router<ApiState> {

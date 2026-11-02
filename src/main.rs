@@ -9,6 +9,8 @@ use crate::utils::startup::initialize_app;
 
 /// Loads configuration, initializes persistent storage, and serves the application.
 ///
+/// With `--openapi`, prints the OpenAPI document as JSON and exits instead.
+///
 /// # Errors
 ///
 /// Returns an error if configuration, database initialization, administrator creation, or the HTTP server fails.
@@ -18,6 +20,11 @@ use crate::utils::startup::initialize_app;
 /// Panics if Tokio cannot initialize its runtime or a startup message cannot be written to standard output.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if std::env::args().any(|arg| arg == "--openapi") {
+        println!("{}", api::docs::document().to_json()?);
+        return Ok(());
+    }
+
     println!("Starting JustGoto...");
 
     // Load envs
