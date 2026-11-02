@@ -55,7 +55,7 @@ export function ImportForm({ api, onImported }: { api: Api; onImported: () => vo
 						{result.imported} imported, {result.skipped} skipped.
 					</p>
 					{result.errors.length > 0 && (
-						<ul className="mt-2 max-h-48 list-inside list-disc overflow-auto text-red-800">
+						<ul className="mt-2 max-h-48 list-inside list-disc overflow-auto text-red-800 dark:text-red-400">
 							{result.errors.map((rowError, index) => (
 								<li key={index}>
 									Row {rowError.row}

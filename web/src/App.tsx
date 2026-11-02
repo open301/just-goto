@@ -6,13 +6,60 @@ import { Redirects } from './components/Redirects';
 import { PasswordForm, Users } from './components/Users';
 import { ErrorMessage, formValue } from './components/shared';
 
+type Theme = 'system' | 'light' | 'dark';
+
+function ThemeControl({ onChange }: { onChange: (theme: Theme) => void }) {
+	return (
+		<button
+			type="button"
+			className="button"
+			aria-label="Toggle dark mode"
+			title="Toggle dark mode"
+			onClick={() =>
+				onChange(document.documentElement.classList.contains('dark') ? 'light' : 'dark')
+			}
+		>
+			<svg
+				className="h-5 w-5 dark:hidden"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				aria-hidden="true"
+			>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"
+				/>
+			</svg>
+			<svg
+				className="hidden h-5 w-5 dark:block"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="4" />
+				<path
+					strokeLinecap="round"
+					d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"
+				/>
+			</svg>
+		</button>
+	);
+}
+
 /** Collect credentials and pass the new session to the app. */
 function Login({
 	onLogin,
 	message,
+	themeControl,
 }: {
 	onLogin: (token: string, user: SessionUser) => void;
 	message: string;
+	themeControl: React.ReactNode;
 }) {
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
@@ -38,6 +85,7 @@ function Login({
 	}
 	return (
 		<main className="mx-auto mt-16 max-w-sm px-4">
+			<div className="mb-4 flex justify-end">{themeControl}</div>
 			<h1 className="text-2xl font-semibold tracking-tight">JustGoto</h1>
 			<p className="mt-2 mb-6 muted">Sign in to manage your redirects.</p>
 			{message && (
@@ -73,6 +121,24 @@ function Login({
 
 /** Restore the session and show the pages allowed by the account's roles. */
 export function App() {
+	const [theme, setTheme] = useState<Theme>(() => {
+		const saved = localStorage.getItem('justgoto-theme');
+		return saved === 'light' || saved === 'dark' ? saved : 'system';
+	});
+	useEffect(() => {
+		const preference = window.matchMedia('(prefers-color-scheme: dark)');
+		const apply = () => {
+			document.documentElement.classList.toggle(
+				'dark',
+				theme === 'dark' || (theme === 'system' && preference.matches),
+			);
+		};
+		localStorage.setItem('justgoto-theme', theme);
+		apply();
+		preference.addEventListener('change', apply);
+		return () => preference.removeEventListener('change', apply);
+	}, [theme]);
+	const themeControl = <ThemeControl onChange={setTheme} />;
 	const [token, setToken] = useState(() => sessionStorage.getItem('justgoto-token') || '');
 	const [user, setUser] = useState<SessionUser | null>(null);
 	const [checking, setChecking] = useState(Boolean(token));
@@ -172,6 +238,7 @@ export function App() {
 	if (!token || !user) {
 		return (
 			<Login
+				themeControl={themeControl}
 				message={message}
 				onLogin={(sessionToken, sessionUser) => {
 					sessionStorage.setItem('justgoto-token', sessionToken);
@@ -190,11 +257,12 @@ export function App() {
 	];
 	return (
 		<div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-			<header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
+			<header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-700">
 				<a href="/" className="text-xl font-semibold tracking-tight">
 					JustGoto
 				</a>
 				<div className="flex flex-wrap items-center gap-4">
+					{themeControl}
 					<span className="muted">
 						{user.username} · {user.roles.join(', ') || 'No role'}
 					</span>

@@ -242,9 +242,9 @@ export function Users({
 				</div>
 			)}
 			<ErrorMessage error={error || list.error} />
-			<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+			<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
 				<table className="w-full">
-					<thead className="border-b border-slate-200">
+					<thead className="border-b border-slate-200 dark:border-slate-700">
 						<tr>
 							<th>Username</th>
 							<th>Roles</th>
@@ -253,7 +253,7 @@ export function Users({
 							</th>
 						</tr>
 					</thead>
-					<tbody className="divide-y divide-slate-100">
+					<tbody className="divide-y divide-slate-100 dark:divide-slate-700">
 						{list.items.map((user) => (
 							<tr key={user.id}>
 								<td className="font-medium">
@@ -278,7 +278,7 @@ export function Users({
 											Password
 										</button>
 										<button
-											className="text-red-700 underline"
+											className="text-red-700 underline dark:text-red-400"
 											disabled={busy}
 											onClick={() => remove(user)}
 										>
