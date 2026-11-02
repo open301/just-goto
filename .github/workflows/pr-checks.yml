@@ -8,7 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  eslint:
+  # Generates API types from the Rust schema, so frontend checks also catch API drift.
+  frontend:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -20,17 +21,23 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run lint
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-  cargo-check:
+      - run: npm run check
+
+  rust:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The backend embeds these assets; placeholders allow type checking without a frontend build.
+      # Tests embed these assets; placeholders allow linting without a frontend build.
       - name: Create frontend placeholders
         run: |
           mkdir -p web/dist/assets
           touch web/dist/index.html web/dist/assets/app.js web/dist/assets/app.css
 
-      - run: cargo check --locked --all-targets
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - run: cargo fmt --all --check
+
+      - run: cargo clippy --locked --all-targets -- -D warnings

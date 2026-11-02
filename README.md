@@ -88,17 +88,23 @@ To stop automatic updates, run `docker compose --profile watchtower stop watchto
 
 ## Development
 
-Run `npm run build` once, then `cargo run --locked` for the backend and `npm run dev` for the frontend. Set `JUSTGOTO_API_URL` if the backend uses a different address.
+Rust and Node.js are both required. API types in `web/src/generated` are not committed; they are generated from the Rust OpenAPI schema whenever `npm run dev`, `typecheck`, `check`, or `build` runs. Until then, your editor reports that the generated module is missing.
 
-| Command                | Description                               |
-| ---------------------- | ----------------------------------------- |
-| `npm run build`        | Check and build the frontend              |
-| `npm run build:all`    | Build the release binary with UI          |
-| `npm run check`        | Check frontend types, lint, and format    |
-| `npm run check:rust`   | Check Rust lint, format, and tests        |
-| `npm run check:all`    | Run all checks and build the frontend     |
-| `npm run format:all`   | Format code and Markdown                  |
-| `npm run generate:api` | Update API types from the running backend |
+1. Run `npm run build` once so the backend can embed the frontend.
+2. Start the backend with `cargo run --locked`.
+3. In another terminal, start the frontend development server with `npm run dev`. Restart it after changing API routes or schemas to regenerate the types.
+
+Set `JUSTGOTO_API_URL` if the backend uses a different address.
+
+| Command              | Description                            |
+| -------------------- | -------------------------------------- |
+| `npm run dev`        | Start the frontend development server  |
+| `npm run build`      | Check and build the frontend           |
+| `npm run build:all`  | Build the release binary with UI       |
+| `npm run check`      | Check frontend types, lint, and format |
+| `npm run check:rust` | Check Rust lint, format, and tests     |
+| `npm run check:all`  | Run all checks and build the frontend  |
+| `npm run format:all` | Format code and Markdown               |
 
 ## API
 
